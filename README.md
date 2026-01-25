@@ -2,9 +2,10 @@
 
 This repository contains the artifacts for the following paper:
 ```bibtex
-Tilus: A Virtual Machine for Arbitrary Low-Precision GPGPU Computation in LLM Serving
+Tilus: A Tile-Level GPGPU Programming Language for Low-Precision Computation
 Yaoyao Ding, Bohan Hou, Xiao Zhang, Allan Lin, Tianqi Chen, Cody Yu Hao, Yida Wang, Gennady Pekhimenko
 ```
+To access the latest version of Tilus, please visit https://github.com/NVIDIA/tilus.
 
 We provide scripts to reproduce all the results in the evaluation section of the paper.
 
