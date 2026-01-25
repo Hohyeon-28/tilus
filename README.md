@@ -1,6 +1,6 @@
 # Tilus Artifacts
 
-This repository contains the artifacts for the following paper:
+This repository contains the artifacts for the following [paper](https://dl.acm.org/doi/10.1145/3760250.3762219):
 ```bibtex
 Tilus: A Tile-Level GPGPU Programming Language for Low-Precision Computation
 Yaoyao Ding, Bohan Hou, Xiao Zhang, Allan Lin, Tianqi Chen, Cody Yu Hao, Yida Wang, Gennady Pekhimenko
