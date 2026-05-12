@@ -27,9 +27,9 @@ plt.rcParams['font.size'] = 14
 
 baseline = 'torch-f16'
 model2label = {
-    'google/gemma-2-9b': 'Gemma-2-9B',
-    'Qwen/Qwen2.5-Coder-32B-Instruct': 'Qwen2.5-32B',
-    'meta-llama/Meta-Llama-3-70B-Instruct': 'Llama-3-70B',
+    '/home/hohyeon/shared/nvme1/hohyeon/models/gemma-2-9b': 'Gemma-2-9B',
+    '/home/hohyeon/shared/nvme1/hohyeon/models/Qwen2.5-Coder-32B-Instruct': 'Qwen2.5-32B',
+    #'meta-llama/Meta-Llama-3-70B-Instruct': 'Llama-3-70B',
 }
 
 
@@ -39,9 +39,9 @@ def run_experiments():
     rows = []
     configs = []
     for model, size in [
-        ('google/gemma-2-9b', 9),
-        ('Qwen/Qwen2.5-Coder-32B-Instruct', 32),
-        ('meta-llama/Meta-Llama-3-70B-Instruct', 70),
+        ('/home/hohyeon/shared/nvme1/hohyeon/models/gemma-2-9b', 9),
+        ('/home/hohyeon/shared/nvme1/hohyeon/models/Qwen2.5-Coder-32B-Instruct', 32),
+        # ('meta-llama/Meta-Llama-3-70B-Instruct', 70),
     ]:
         for (stage, bs, tokens) in [
             ('decode', 1, 2048),
@@ -73,7 +73,7 @@ def run_experiments():
             backend=backend,
             bs=bs,
             group_size=128 if 'int' in b_dtype else -1,
-            gpu_memory_utilization=0.96 if '3090' not in torch.cuda.get_device_name() else 0.84,
+            gpu_memory_utilization=0.96 if '3090' not in torch.cuda.get_device_name() else 0.95,
             mode='cgraph',
             num_repeat=10,
             mutis_space=2,
@@ -260,9 +260,9 @@ def plot(df: DataFrame, models, out_fname: str):
 
 def main():
     models = [
-        'google/gemma-2-9b',
-        'Qwen/Qwen2.5-Coder-32B-Instruct',
-        'meta-llama/Meta-Llama-3-70B-Instruct',
+        '/home/hohyeon/shared/nvme1/hohyeon/models/gemma-2-9b',
+        '/home/hohyeon/shared/nvme1/hohyeon/models/Qwen2.5-Coder-32B-Instruct',
+        # 'meta-llama/Meta-Llama-3-70B-Instruct',
     ]
     stage_bs_tokens = [
         ('decode', 1, 2048),
@@ -299,4 +299,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 

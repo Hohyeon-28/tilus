@@ -65,8 +65,14 @@ def process(
     a_dtype: str,
     group_size: int,
     batch_sizes: List[int],
-    gpu='NVIDIA-L40S'
+    gpu=None
 ) -> DataFrame:
+    # Auto-detect GPU if not specified
+    if gpu is None:
+        available_devices = list(df['device'].unique()) if 'device' in df.columns and not df.empty else []
+        gpu = available_devices[0] if available_devices else 'NVIDIA-L40S'
+        print(f"Auto-selected GPU device: {gpu}")
+    
     df['m-n-k'] = df.apply(lambda row: '{}-{}-{}'.format(row['m'], row['n'], row['k']), axis=1)
     df = df[(df['k'] == 8192) & (df['n'] == 57344)]
     df = df[df['device'] == gpu]
@@ -83,15 +89,14 @@ def process(
     df = df.groupby(group_columns, as_index=False)['latency'].mean()
 
     # calculate speedup
-    # create a mapping of baseline latencies for each workload
+    # build a baseline table and merge to avoid apply-returning-multiple-columns issues
     baseline_df = df[df['runner'] == baseline].copy()
-    baseline_latencies = {}
-    for _, row in baseline_df.iterrows():
-        key = (row['m'], row['k'], row['n'])
-        baseline_latencies[key] = row['latency']
-
-    # calculate speedup for each row by comparing with corresponding baseline
-    df['baseline'] = df.apply(lambda row: baseline_latencies[(row['m'], row['k'], row['n'])], axis=1)
+    baseline_df = baseline_df[['m', 'k', 'n', 'latency']].rename(columns={'latency': 'baseline'})
+    # merge baseline latencies into df on (m,k,n)
+    df = df.merge(baseline_df, on=['m', 'k', 'n'], how='left')
+    if df['baseline'].isnull().any():
+        print('Warning: some rows are missing baseline latencies and will be dropped')
+    df = df.dropna(subset=['baseline'])
     df['speedup'] = df['baseline'] / df['latency']
 
     runners = ['triton', 'quant-llm', 'bitblas', 'mutis']
@@ -170,7 +175,8 @@ def plot(df: DataFrame, out_fname):
     # Configure zoom region
     batch_sizes = sorted(df['m'].unique())
     large_tokens_idx = [i for i, size in enumerate(batch_sizes) if size >= 4096]
-    axins.set_xlim(large_tokens_idx[0] - 0.5, large_tokens_idx[-1] + 0.5)
+    if large_tokens_idx:  # Only set xlim if there are large token indices
+        axins.set_xlim(large_tokens_idx[0] - 0.5, large_tokens_idx[-1] + 0.5)
     axins.set_ylim(0.45, 1.20)
 
     # Set ticks for both plots
@@ -209,8 +215,18 @@ def main():
     os.makedirs(results_dir, exist_ok=True)
     with open(os.path.join(results_dir, 'figure13.txt'), 'w') as f:
         f.write(df.to_string(index=False))
+    
+    # If df is empty after running experiments, exit early
+    if df.empty:
+        print('No data collected by bench_configs(); exiting without plot.')
+        return
+    
     df = process(df, a_dtype='float16', group_size=128, batch_sizes=[1, 4, 8, 16, 4096, 8192, 12288])
+    if df.empty:
+        print('No data after processing filters; nothing to plot.')
+        return
     plot(df, out_fname=os.path.join(results_dir, 'figure13.pdf'))
 
 if __name__ == '__main__':
     main()
+

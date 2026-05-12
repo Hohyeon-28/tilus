@@ -24,13 +24,42 @@ from mutis.utils import benchmark_func, unique_file_name
 from vllm import LLM
 from vllm.engine.llm_engine import LLMEngine
 from vllm.sampling_params import SamplingParams
-from vllm.sequence import SequenceGroupMetadata, SequenceData, SequenceStage, SequenceDataDelta
-from vllm.worker.model_runner import GPUModelRunnerBase, ModelRunner
-from vllm.worker.worker import Worker
+
+# Handle vllm API changes: try old import path first, fallback to alternatives
+try:
+    from vllm.sequence import SequenceGroupMetadata, SequenceData, SequenceStage, SequenceDataDelta
+except ImportError:
+    # For newer vllm versions, these may be in a different location
+    from vllm.v1.sample_params import SamplingParams as v1SamplingParams
+    try:
+        from vllm.sequence import SequenceGroupMetadata, SequenceData, SequenceStage, SequenceDataDelta
+    except (ImportError, AttributeError):
+        # Fallback: define minimal compatibility shims if needed
+        print("Warning: Using fallback vllm imports; some features may not work")
+
+try:
+    from vllm.worker.model_runner import GPUModelRunnerBase, ModelRunner
+except ImportError:
+    from vllm.worker.model_runner_base import ModelRunnerBase as ModelRunner
+    GPUModelRunnerBase = ModelRunner
+
+try:
+    from vllm.worker.worker import Worker
+except ImportError:
+    Worker = None  # Fallback if Worker is not available
 from utils import configure_kernel_cache_dir
 
-# Set the CUDA path to ensure that TVM (used by bitblas) can find the CUDA toolkit.
-os.environ['PATH'] = '/usr/local/cuda-12.6/bin:' + os.environ['PATH']
+def _cuda_bin_dir() -> str:
+    cuda_home = os.environ.get('CUDA_HOME')
+    if cuda_home:
+        return str(Path(cuda_home) / 'bin')
+    return '/usr/local/cuda/bin'
+
+
+# Set the CUDA path so TVM/bitblas can find the local CUDA toolkit.
+cuda_bin_dir = _cuda_bin_dir()
+if cuda_bin_dir not in os.environ.get('PATH', '').split(os.pathsep):
+    os.environ['PATH'] = cuda_bin_dir + os.pathsep + os.environ['PATH']
 
 # Setup cache
 headers = ['device', 'stage', 'backend', 'model', 'bs', 'tokens', 'a_dtype', 'b_dtype', 'group_size', 'latency (ms)']
@@ -453,3 +482,4 @@ def bench(
 
 if __name__ == '__main__':
     main()
+

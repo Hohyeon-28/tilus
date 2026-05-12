@@ -27,9 +27,9 @@ plt.rcParams['font.size'] = 14
 
 baseline = 'torch-f16'
 model2label = {
-    'google/gemma-2-9b': 'Gemma-2-9B',
-    'Qwen/Qwen2.5-Coder-32B-Instruct': 'Qwen2.5-32B',
-    'meta-llama/Meta-Llama-3-70B-Instruct': 'Llama-3-70B',
+    '/home/hohyeon/shared/nvme1/hohyeon/models/gemma-2-9b': 'Gemma-2-9B',
+    '/home/hohyeon/shared/nvme1/hohyeon/models/Qwen2.5-Coder-32B-Instruct': 'Qwen2.5-32B',
+    #'meta-llama/Meta-Llama-3-70B-Instruct': 'Llama-3-70B',
 }
 
 
@@ -39,7 +39,7 @@ def run_experiments():
     rows = []
     configs = []
     for model, size in [
-        ('Qwen/Qwen2.5-Coder-32B-Instruct', 32),
+        ('/home/hohyeon/shared/nvme1/hohyeon/models/Qwen2.5-Coder-32B-Instruct', 32),
     ]:
         for (stage, bs, tokens) in [
             ('decode', 1, 2048),
@@ -69,7 +69,7 @@ def run_experiments():
             backend=backend,
             bs=bs,
             group_size=128 if 'int' in b_dtype else -1,
-            gpu_memory_utilization=0.96 if '3090' not in torch.cuda.get_device_name() else 0.84,
+            gpu_memory_utilization=0.96 if '3090' not in torch.cuda.get_device_name() else 0.95,
             mode='cgraph',
             num_repeat=10,
             mutis_space=2,
@@ -156,9 +156,13 @@ def plot(df: DataFrame, models, out_fname: str):
             tick_positions = []
             tick_labels = []
 
-            # Get max latency for this specific subplot
+            # Get max latency for this specific subplot, guard against all-NaN
             subplot_df = df[(df['model'] == model) & (df['bs'] == bs) & (df['stage'] == stage)]
-            max_latency = subplot_df['latency'].max() if not subplot_df.empty else 0
+            if subplot_df.empty:
+                max_latency = 0.0
+            else:
+                lat_series = subplot_df['latency'].dropna()
+                max_latency = float(lat_series.max()) if not lat_series.empty else 0.0
 
             for dtype in dtypes:
                 dtype_start = current_x
@@ -256,7 +260,7 @@ def plot(df: DataFrame, models, out_fname: str):
 
 def main():
     models = [
-        'Qwen/Qwen2.5-Coder-32B-Instruct',
+        '/home/hohyeon/shared/nvme1/hohyeon/models/Qwen2.5-Coder-32B-Instruct',
     ]
     stage_bs_tokens = [
         ('decode', 1, 2048),
@@ -291,4 +295,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
